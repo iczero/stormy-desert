@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>stormy-desert</title>
+		<!--
+		<style>
+			form { padding: 3px; position: fixed; bottom: 0; width: 100%; }
+			form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+			form button { border: none; padding: 10px; }
+			#messages { list-style-type: none; margin: 0; padding: 0; }
+			#messages li { padding: 5px 10px; }
+		</style>
+		-->
+		<style>
+			form { padding: 3px; position: fixed; bottom: 0; width: 100%; }
+			form input { width: 90%; }
+			#messages { list-style-type: none; margin: 0; padding: 0; }
+			#messages li { padding: 5px 10px; }
+		</style>
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/static/jquery-1.11.1.js"></script>
+	</head>
+	<body>
+		<ul id="messages"></ul>
+		<form id="form" action="">
+			<input id="m" autocomplete="off" /><button>Send</button>
+		</form>
+		<script>
+			var socket = io();
+			$('#form').submit(function() {
+				socket.emit('chat',$('#m').val());
+				$('#m').val('');
+				return false;
+			});
+			socket.on('servmsg', function(msg) {
+				$('#messages').prepend('<li>'+msg+'</li>');
+			});
+		</script>
+	</body>
+</html>
+
