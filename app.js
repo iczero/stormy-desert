@@ -50,6 +50,10 @@ app.get('/', function(req,res) {
 	res.sendFile(__dirname+"/static/jquery-1.11.1.js");
 });
 
+function sendToAll(msg) {
+	io.emit('servmsg', entities.encode(msg));
+}
+
 io.on('connection', function(socket) {
 	log.info('Connection from '+socket.handshake.address+' with id '+clients.length);
 	socket.clientid = clients.length;
@@ -57,10 +61,10 @@ io.on('connection', function(socket) {
 		socket: socket,
 		nick: "client"+socket.clientid
 	};
-	io.emit('servmsg', '* '+clients[socket.clientid].nick+' has joined the room');
+	sendToAll('* '+clients[socket.clientid].nick+' has joined the room');
 	socket.on('disconnect', function() {
 		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
-		io.emit('servmsg', '* '+clients[this.clientid].nick+' has left the room');
+		sendToAll('* '+clients[this.clientid].nick+' has left the room');
 		clients.splice(clients.indexOf(this)-1,1);
 	}).on('chat', function(msg) {
 		log.debug('Message from client '+this.clientid+': '+msg);
@@ -69,8 +73,12 @@ io.on('connection', function(socket) {
 			msg = msg.split(' ');
 			switch(msg[0].toLowerCase()) {
 				case "/nick":
-					io.emit('servmsg', '* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
+					sendToAll('* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
 					clients[this.clientid].nick = msg[1];
+					break;
+				case "/me":
+					msg.splice(0,1);
+					sendToAll('* '+clients[this.clientid].nick+' '+msg.join(' '));
 					break;
 			}
 		} else {
