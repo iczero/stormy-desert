@@ -111,7 +111,13 @@ server.listen(PORT, function() {
 var rc = new net.Server();
 rc.maxConnections = 1;
 
-
+process.on("SIGTERM", function() {
+	sendToAll('* Server is shutting down');
+	process.exit(0);
+}).on("SIGINT", function() {
+	sendToAll('* Server is shutting down (Got SIGINT)');
+	process.exit(0);
+});
 var consoleinterface = readline.createInterface({
 	input: cin,
 	output: cout
