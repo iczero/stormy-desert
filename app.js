@@ -16,6 +16,7 @@ app.use(express.static(path.join(__dirname, 'static')));
 var server = http.Server(app);
 var io = sio(server);
 var clients = [];
+var nicks = {};
 
 var cin = new stream.PassThrough();
 var cout = new stream.PassThrough();
@@ -53,6 +54,9 @@ app.get('/', function(req,res) {
 function sendToAll(msg) {
 	io.emit('servmsg', entities.encode(msg));
 }
+function sendTo(socket, msg) {
+	socket.emit('servmsg', entities.encode(msg));
+}
 
 io.on('connection', function(socket) {
 	log.info('Connection from '+socket.handshake.address+' with id '+clients.length);
@@ -61,10 +65,12 @@ io.on('connection', function(socket) {
 		socket: socket,
 		nick: "client"+socket.clientid
 	};
+	nicks[clients[socket.clientid]] = socket;
 	sendToAll('* '+clients[socket.clientid].nick+' has joined the room');
 	socket.on('disconnect', function() {
 		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
 		sendToAll('* '+clients[this.clientid].nick+' has left the room');
+		delete nicks[clients[this.clientid].nick];
 		clients.splice(clients.indexOf(this)-1,1);
 	}).on('chat', function(msg) {
 		log.debug('Message from client '+this.clientid+': '+msg);
@@ -74,6 +80,8 @@ io.on('connection', function(socket) {
 			switch(msg[0].toLowerCase()) {
 				case "/nick":
 					sendToAll('* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
+					delete nicks[this.clientid];
+					nicks[msg[1]] = this;
 					clients[this.clientid].nick = msg[1];
 					break;
 				case "/me":
@@ -85,7 +93,10 @@ io.on('connection', function(socket) {
 					Object.keys(clients).forEach(function(id) {
 						nicks.push(clients[id].nick);
 					});
-					this.emit('servmsg', '* List of currently connected clients: '+nicks.join(' '));
+					sendTo(this, '* List of currently connected clients: '+nicks.join(' '));
+					break;
+				default:
+					sendTo(this, "* "+msg[0]+": Command not found");
 			}
 		} else {
 			sendToAll('<'+clients[this.clientid].nick+'> '+msg);

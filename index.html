@@ -24,12 +24,22 @@
 	<body>
 		<ul id="messages"></ul>
 		<form id="form" action="">
-			<input id="m" autocomplete="off" /><button>Send</button>
+			<input id="m" autocomplete="off" autofocus /><button>Send</button>
 		</form>
 		<script>
 			var socket = io();
 			$('#form').submit(function() {
-				socket.emit('chat',$('#m').val());
+				msg = $('#m').val();
+				msgsplit = msg.split(' ');
+				switch(msgsplit[0].toLowerCase()) {
+					case "/clear":
+						$('#messages').html('');
+						break;
+					
+					default:
+						socket.emit('chat',msg);
+						break;
+				}
 				$('#m').val('');
 				return false;
 			});
