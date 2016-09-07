@@ -1,15 +1,48 @@
-/* TLS is cool */
+// yay?
 const express = require('express');
 const http = require('http');
 const sio = require('socket.io');
 const readline = require('readline');
+const net = require('net');
+const stream = require('stream');
+const path = require('path');
+var Entities = require('html-entities').AllHtmlEntities;
+var entities = new Entities();
 
 const PORT = process.env.PORT || 3000;
 
 var app = express();
+app.use(express.static(path.join(__dirname, 'static')));
 var server = http.Server(app);
 var io = sio(server);
 var clients = [];
+
+var cin = new stream.PassThrough();
+var cout = new stream.PassThrough();
+cout.pipe(process.stdout);
+process.stdin.pipe(cin);
+
+function print(text) {
+	cout.write(text+"\n");
+}
+	
+var log = {
+	debug: line => {
+		print(Date()+' [DEBUG] '+line);
+	},
+	info: line => {
+		print(Date()+' [INFO] '+line);
+	},
+	notice: line => {
+		print(Date()+' [NOTICE] '+line);
+	},
+	warn: line => {
+		print(Date()+' [WARN] '+line);
+	},
+	error: line => {
+		print(Date()+' [ERROR] '+line);
+	}
+}
 
 app.get('/', function(req,res) {
 	res.sendFile(__dirname+"/index.html");
@@ -18,25 +51,45 @@ app.get('/', function(req,res) {
 });
 
 io.on('connection', function(socket) {
-	console.log('[INFO] Connection from '+socket.handshake.address+' with id '+clients.length);
-	clients[clients.length] = socket;
+	log.info('Connection from '+socket.handshake.address+' with id '+clients.length);
+	socket.clientid = clients.length;
+	clients[clients.length] = {
+		socket: socket,
+		nick: "client"+socket.clientid
+	};
+	io.emit('servmsg', '* '+clients[socket.clientid].nick+' has joined the room');
 	socket.on('disconnect', function() {
-		console.log('[INFO] Closed connection from '+this.handshake.address+' with id '+clients.indexOf(this));
+		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
+		io.emit('servmsg', '* '+clients[this.clientid].nick+' has left the room');
 		clients.splice(clients.indexOf(this)-1,1);
 	}).on('chat', function(msg) {
-		console.log('[DEBUG] Message from client '+clients.indexOf(this)+': '+msg);
-		io.emit('servmsg', msg);
+		log.debug('Message from client '+this.clientid+': '+msg);
+		if (msg.startsWith('/')) {
+			// it is a command that has not been handled by the client
+			msg = msg.split(' ');
+			switch(msg[0].toLowerCase()) {
+				case "/nick":
+					io.emit('servmsg', '* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
+					clients[this.clientid].nick = msg[1];
+					break;
+			}
+		} else {
+			io.emit('servmsg', entities.encode('<'+clients[this.clientid].nick+'> '+msg));
+		}
 	});
 });
 
 server.listen(PORT, function() {
-	console.log('Listening on port '+PORT);
+	log.info('Listening on port '+PORT);
 });
 
-readline.createInterface({
-	input: process.stdin,
-	output: process.stdout
+var rc = new net.Server();
+rc.maxConnections = 1;
+
+
+var consoleinterface = readline.createInterface({
+	input: cin,
+	output: cout
 }).on('line', function(line) {
-	io.emit('servmsg', line);
+	io.emit('servmsg', '[SERVER] '+line);
 });
-
