@@ -65,7 +65,7 @@ io.on('connection', function(socket) {
 		socket: socket,
 		nick: "client"+socket.clientid
 	};
-	nicks[clients[socket.clientid]] = socket;
+	nicks[clients[socket.clientid].nick] = socket;
 	sendToAll('* '+clients[socket.clientid].nick+' has joined the room');
 	socket.on('disconnect', function() {
 		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
@@ -79,21 +79,21 @@ io.on('connection', function(socket) {
 			msg = msg.split(' ');
 			switch(msg[0].toLowerCase()) {
 				case "/nick":
-					sendToAll('* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
-					delete nicks[this.clientid];
-					nicks[msg[1]] = this;
-					clients[this.clientid].nick = msg[1];
+					if (nicks[msg[1]]) {
+						sendTo(this, '* '+msg[1]+': Nick is already in use');
+					} else {	
+						sendToAll('* '+clients[this.clientid].nick+' has changed their nick to '+msg[1]);
+						delete(nicks[clients[this.clientid].nick]);
+						nicks[msg[1]] = this;
+						clients[this.clientid].nick = msg[1];
+					}
 					break;
 				case "/me":
 					msg.splice(0,1);
 					sendToAll('* '+clients[this.clientid].nick+' '+msg.join(' '));
 					break;
 				case "/list":
-					var nicks = [];
-					Object.keys(clients).forEach(function(id) {
-						nicks.push(clients[id].nick);
-					});
-					sendTo(this, '* List of currently connected clients: '+nicks.join(' '));
+					sendTo(this, '* List of currently connected clients: '+Object.keys(nicks).join(' '));
 					break;
 				default:
 					sendTo(this, "* "+msg[0]+": Command not found");
