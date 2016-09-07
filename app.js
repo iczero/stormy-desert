@@ -12,7 +12,7 @@ var entities = new Entities();
 const PORT = process.env.PORT || 3000;
 
 var app = express();
-app.use(express.static(path.join(__dirname, 'static')));
+app.use(express.static(path.join(__dirname, '/static')));
 var server = http.Server(app);
 var io = sio(server);
 var clients = [];
@@ -44,11 +44,14 @@ var log = {
 		print(Date()+' [ERROR] '+line);
 	}
 }
-
-app.get('/', function(req,res) {
+app.get('*', function(req,res,next) {
+	if (req.headers['x-forwarded-proto']!='https' && (process.env.PRODUCTION == "true")) {
+		res.redirect('https://stormy-desert.herokuapp.com'+req.url);
+	} else {
+		next();
+	}
+}).get('/', function(req,res) {
 	res.sendFile(__dirname+"/index.html");
-}).get('/static/jquery-1.11.1.js', function(req,res) {
-	res.sendFile(__dirname+"/static/jquery-1.11.1.js");
 });
 
 function sendToAll(msg) {
