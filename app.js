@@ -80,9 +80,15 @@ io.on('connection', function(socket) {
 					msg.splice(0,1);
 					sendToAll('* '+clients[this.clientid].nick+' '+msg.join(' '));
 					break;
+				case "/list":
+					var nicks = [];
+					Object.keys(clients).forEach(function(id) {
+						nicks.push(clients[id].nick);
+					});
+					this.emit('servmsg', '* List of currently connected clients: '+nicks.join(' '));
 			}
 		} else {
-			io.emit('servmsg', entities.encode('<'+clients[this.clientid].nick+'> '+msg));
+			sendToAll('<'+clients[this.clientid].nick+'> '+msg);
 		}
 	});
 });
