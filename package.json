@@ -4,6 +4,11 @@
   "description": "things on heroku",
   "version": "0.0.01",
   "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeffluo35/stormy-desert"
+  },
+  "license": "GPL-3.0",
   "dependencies": {
     "express": "^4.14.0",
     "html-entities": "^1.2.0",
