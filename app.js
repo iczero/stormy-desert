@@ -15,8 +15,10 @@ var app = express();
 app.use(express.static(path.join(__dirname, '/static')));
 var server = http.Server(app);
 var io = sio(server);
-var clients = [];
+var clients = {};
 var nicks = {};
+var availablecnum = [];
+var clientnum = 0;
 
 var cin = new stream.PassThrough();
 var cout = new stream.PassThrough();
@@ -45,8 +47,8 @@ var log = {
 	}
 }
 app.get('*', function(req,res,next) {
-	if (req.headers['x-forwarded-proto']!='htttps' && (process.env.PRODUCTION == "true")) {
-		res.redirect('https://stormy-desert.herokuapp.com'+req.url);
+	if (req.headers['x-forwarded-proto']!='https' && (process.env.PRODUCTION == "true")) {
+		res.redirect('https://'+req.headers.host+req.url);
 	} else {
 		next();
 	}
@@ -62,9 +64,14 @@ function sendTo(socket, msg) {
 }
 
 io.on('connection', function(socket) {
-	log.info('Connection from '+socket.handshake.address+' with id '+clients.length);
-	socket.clientid = clients.length;
-	clients[clients.length] = {
+	var cnum = availablecnum.pop();
+	if (cnum == undefined) {
+		var cnum = clientnum;
+		clientnum++;
+	}
+	log.info('Connection from '+socket.handshake.address+' with id '+cnum);
+	socket.clientid = cnum;
+	clients[cnum] = {
 		socket: socket,
 		nick: "client"+socket.clientid
 	};
@@ -74,7 +81,8 @@ io.on('connection', function(socket) {
 		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
 		sendToAll('* '+clients[this.clientid].nick+' has left the room');
 		delete nicks[clients[this.clientid].nick];
-		clients.splice(clients.indexOf(this)-1,1);
+		delete clients[this.clientid];
+		availablecnum.push(this.clientid);
 	}).on('chat', function(msg) {
 		log.debug('Message from client '+this.clientid+': '+msg);
 		if (msg.startsWith('/')) {
