@@ -27,26 +27,66 @@
 			<input id="m" autocomplete="off" autofocus /><button>Send</button>
 		</form>
 		<script>
+			function print(msg) {
+				$('#messages').append('<li>'+msg+'</li>');
+			}
 			var socket = io();
 			$('#form').submit(function() {
-				msg = $('#m').val();
-				msgsplit = msg.split(' ');
-				switch(msgsplit[0].toLowerCase()) {
-					case "/clear":
-						$('#messages').html('');
-						break;
-					
-					default:
-						socket.emit('chat',msg);
-						break;
+				var msg = $('#m').val();
+				if (msg.startsWith('/')) {
+					var msgsplit = msg.split(' ');
+					switch(msgsplit[0].toLowerCase()) {
+						case "/clear":
+							$('#messages').html('');
+							break;
+						case "/connect":
+							socket.connect();
+							break;
+						case "/disconnect":
+						case "/quit":
+							socket.disconnect();
+							break;
+						case "/help":
+							if (msgsplit[1] == undefined) {
+								print('+ Client help topics available: clear connect disconnect');
+								msgsplit[1] = ' ';
+							}
+							switch(msgsplit[1].toLowerCase()) {
+								case "clear":
+									print('+ clear: Clears the screen');
+									break;
+								case "connect":
+									print('+ connect: Connects to the server');
+									break;
+								case "quit":
+								case "disconnect":
+									print('+ disconnect: Disconnects from the server');
+									break;
+								default:
+									socket.emit('chat', msg);
+									break;
+							}
+							break;
+						default:
+							socket.emit('chat', msg);
+							break;
+					}
+				} else {
+					socket.emit('chat', msg);
 				}
 				$('#m').val('');
 				return false;
 			});
 			socket.on('servmsg', function(msg) {
-				$('#messages').append('<li>'+msg+'</li>');
-				var $messages = document.getElementById('messages')
-				$messages.scrollTop = $messages.scrollHeight
+				print(msg);
+				var $messages = document.getElementById('messages');
+				$messages.scrollTop = $messages.scrollHeight;
+			}).on('connecting', function(msg) {
+				print('+ Connecting to server...');
+			}).on('connect', function(msg) {
+				print('+ Connected to server');
+			}).on('disconnect', function(msg) {
+				print('+ Disconnected from server.');
 			});
 			function resizemsgbox() {
 				var height = 0;
