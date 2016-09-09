@@ -26,6 +26,20 @@ var cout = new stream.PassThrough();
 cout.pipe(process.stdout);
 process.stdin.pipe(cin);
 
+var rc = new net.Server();
+rc.maxConnections = 1;
+rc.on('connection', function(socket) {
+	cout.pipe(socket);
+	socket.pipe(cin);
+	socket.on('close', function() {
+		cout.unpipe(socket);
+		socket.unpipe(cout);
+	});
+	log.info('Connection from remote control instance');
+}).on('listening', function() {
+	log.info('Remote control listening on port 1323');
+}).listen(1323);
+
 function print(text) {
 	cout.write(text+"\n");
 }
@@ -58,6 +72,7 @@ app.get('*', function(req,res,next) {
 });
 
 function sendToAll(msg) {
+	log.debug('sendToAll: '+msg);
 	io.emit('servmsg', entities.encode(msg));
 }
 function sendTo(socket, msg) {
@@ -88,7 +103,7 @@ io.on('connection', function(socket) {
 		delete clients[this.clientid];
 		availablecnum.push(this.clientid);
 	}).on('chat', function(msg) {
-		log.debug('Message from client '+this.clientid+': '+msg);
+		log.debug('From '+clients[this.clientid].nick+': '+msg);
 		if (msg.startsWith('/')) {
 			// it is a command that has not been handled by the client
 			msg = msg.split(' ');
@@ -195,9 +210,6 @@ io.on('connection', function(socket) {
 server.listen(PORT, function() {
 	log.info('Listening on port '+PORT);
 });
-
-var rc = new net.Server();
-rc.maxConnections = 1;
 
 process.on("SIGTERM", function() {
 	sendToAll('* Server is shutting down');
