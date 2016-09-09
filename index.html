@@ -41,6 +41,7 @@
 						case "/help":
 							if (msgsplit[1] == undefined) {
 								print('+ Client help topics available: clear connect disconnect');
+								print('+ Use /help &lt;topic&gt;');
 								msgsplit[1] = ' ';
 							}
 							switch(msgsplit[1].toLowerCase()) {
@@ -76,9 +77,16 @@
 			}).on('connecting', function(msg) {
 				print('+ Connecting to server...');
 			}).on('connect', function(msg) {
+				socket.sendBuffer = [];
 				print('+ Connected to server');
 			}).on('disconnect', function(msg) {
 				print('+ Disconnected from server.');
+			}).on('reconnecting', function(num) {
+				print('+ Reconnecting... (attempt '+num+')');
+			}).on('connect_error', function(){
+				print('+ Error connecting to server');
+			}).on('connect_timeout', function(){
+				print('+ Connection timed out');
 			});
 			function resizemsgbox() {
 				var height = 0;
@@ -95,6 +103,7 @@
 			}
 			resizemsgbox();
 			$(window).resize(resizemsgbox);
+			print('+ For help, type /help');
 		</script>
 	</body>
 </html>

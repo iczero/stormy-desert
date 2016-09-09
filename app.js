@@ -79,6 +79,8 @@ io.on('connection', function(socket) {
 	};
 	nicks[clients[socket.clientid].nick] = socket;
 	sendToAll('* '+clients[socket.clientid].nick+' has joined the room');
+	sendTo(socket, '* Online: '+Object.keys(nicks).join(' '));
+	socket.join('main');
 	socket.on('disconnect', function() {
 		log.info('Closed connection from '+this.handshake.address+' with id '+this.clientid);
 		sendToAll('* '+clients[this.clientid].nick+' has left the room');
@@ -157,6 +159,12 @@ io.on('connection', function(socket) {
 						case 'list':
 							sendTo(this, '* list: Lists all online users');
 							break;
+						case ' ':
+							if (clients[this.clientid].admin) {
+								sendTo(this, '* Help topics available to opers: kill eval');
+							}
+							sendTo(this, '* Available help topics: nick me list');
+							break;
 						/* Don't list this, it is a bad idea
 						case 'oper':
 							sendTo(this, '* oper: Gives you crap ammounts of power')
@@ -171,12 +179,6 @@ io.on('connection', function(socket) {
 								sendTo(this, '* eval: Runs javascript code on the server');
 								break;
 							}
-						case ' ':
-							if (clients[this.clientid].admin) {
-								sendTo(this, '* Help topics available to opers: kill eval');
-							}
-							sendTo(this, '* Available help topics: nick me list');
-							break;
 						default:
 							sendTo(this, '* '+msg[1]+': No such help topic');
 					}
