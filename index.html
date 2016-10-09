@@ -101,6 +101,7 @@
 				}
 			  element.style.height = ((height - 35)+"px");
 			}
+			setInterval(socket.emit('ping'),50000); // for heroku
 			resizemsgbox();
 			$(window).resize(resizemsgbox);
 			print('+ For help, type /help');

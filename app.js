@@ -204,6 +204,8 @@ io.on('connection', function(socket) {
 		} else {
 			sendToAll('<'+clients[this.clientid].nick+'> '+msg);
 		}
+	}).on('ping',function(msg) {
+		this.emit('pong',msg);
 	});
 });
 
